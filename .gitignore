@@ -1,0 +1,9 @@
+# Local study material
+docs/*.pdf
+*/docs/*.pdf
+
+# Build output
+/bin/
+*.exe
+*.test
+*.out

@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/skybytescode/order-service/internal/application/core/domain"
-	"github.com/skybytescode/order-service/internal/ports"
+	"github.com/skybytescode/microservices/order-service/internal/application/core/domain"
+	"github.com/skybytescode/microservices/order-service/internal/ports"
 )
 
 type Application struct {

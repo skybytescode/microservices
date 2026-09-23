@@ -8,10 +8,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/skybytescode/microservices-proto/golang/order"
-	"github.com/skybytescode/order-service/config"
-	"github.com/skybytescode/order-service/internal/application/core/domain"
-	"github.com/skybytescode/order-service/internal/ports"
+	"github.com/skybytescode/microservices/microservices-proto/golang/order"
+	"github.com/skybytescode/microservices/order-service/config"
+	"github.com/skybytescode/microservices/order-service/internal/application/core/domain"
+	"github.com/skybytescode/microservices/order-service/internal/ports"
 )
 
 type Adapter struct {

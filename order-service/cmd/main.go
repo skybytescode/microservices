@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/skybytescode/order-service/config"
-	"github.com/skybytescode/order-service/internal/adapters/db"
-	"github.com/skybytescode/order-service/internal/adapters/grpc"
-	"github.com/skybytescode/order-service/internal/application/core/api"
+	"github.com/skybytescode/microservices/order-service/config"
+	"github.com/skybytescode/microservices/order-service/internal/adapters/db"
+	"github.com/skybytescode/microservices/order-service/internal/adapters/grpc"
+	"github.com/skybytescode/microservices/order-service/internal/application/core/api"
 )
 
 func main() {

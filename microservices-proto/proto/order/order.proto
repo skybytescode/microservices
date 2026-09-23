@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/skybytescode/microservices-proto/golang/order";
+option go_package = "github.com/skybytescode/microservices/microservices-proto/golang/order";
 
 message Item {
     string name = 1;
