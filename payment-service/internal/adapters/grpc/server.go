@@ -9,16 +9,16 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/skybytescode/microservices-proto/golang/order"
-	"github.com/skybytescode/microservices/order-service/config"
-	"github.com/skybytescode/microservices/order-service/internal/ports"
+	"github.com/skybytescode/microservices-proto/golang/payment"
+	"github.com/skybytescode/microservices/payment-service/config"
+	"github.com/skybytescode/microservices/payment-service/internal/ports"
 )
 
 type Adapter struct {
 	api    ports.APIPort
 	port   int
 	server *grpc.Server
-	order.UnimplementedOrderServer
+	payment.UnimplementedPaymentServer
 }
 
 func NewAdapter(api ports.APIPort, port int) *Adapter {
@@ -35,12 +35,12 @@ func (a *Adapter) Run() {
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
 	a.server = grpcServer
-	order.RegisterOrderServer(grpcServer, a)
+	payment.RegisterPaymentServer(grpcServer, a)
 	if config.GetEnv() == "development" {
 		reflection.Register(grpcServer)
 	}
 
-	log.Printf("starting order service on port %d ...", a.port)
+	log.Printf("starting payment service on port %d ...", a.port)
 	if err := grpcServer.Serve(listen); err != nil {
 		log.Fatalf("failed to serve grpc on port %d", a.port)
 	}

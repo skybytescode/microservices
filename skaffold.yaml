@@ -1,0 +1,21 @@
+apiVersion: skaffold/v2beta29
+kind: Config
+metadata:
+  name: microservices
+build:
+  artifacts:
+  - image: order
+    context: order-service
+    docker:
+      dockerfile: Dockerfile
+  - image: payment
+    context: payment-service
+    docker:
+      dockerfile: Dockerfile
+deploy:
+  kubectl:
+    defaultNamespace: default
+    manifests:
+    - mysql/deployment.yaml
+    - order-service/deployment.yaml
+    - payment-service/deployment.yaml

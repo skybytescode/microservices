@@ -14,17 +14,16 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/skybytescode/microservices/order-service/config"
-	"github.com/skybytescode/microservices/order-service/internal/adapters/db"
-	"github.com/skybytescode/microservices/order-service/internal/adapters/grpc"
-	"github.com/skybytescode/microservices/order-service/internal/adapters/payment"
-	"github.com/skybytescode/microservices/order-service/internal/application/core/api"
+	"github.com/skybytescode/microservices/payment-service/config"
+	"github.com/skybytescode/microservices/payment-service/internal/adapters/db"
+	"github.com/skybytescode/microservices/payment-service/internal/adapters/grpc"
+	"github.com/skybytescode/microservices/payment-service/internal/application/core/api"
 )
 
 const (
-	service     = "order"
+	service     = "payment"
 	environment = "dev"
-	id          = 1
+	id          = 2
 )
 
 // tracerProvider exports spans over OTLP to the endpoint in
@@ -84,12 +83,7 @@ func main() {
 		log.Fatalf("Failed to connect to database. Error: %v", err)
 	}
 
-	paymentAdapter, err := payment.NewAdapter(config.GetPaymentServiceUrl())
-	if err != nil {
-		log.Fatalf("Failed to initialize payment stub. Error: %v", err)
-	}
-
-	application := api.NewApplication(dbAdapter, paymentAdapter)
+	application := api.NewApplication(dbAdapter)
 	grpcAdapter := grpc.NewAdapter(application, config.GetApplicationPort())
 	grpcAdapter.Run()
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/skybytescode/microservices/order-service/internal/application/core/domain"
 )
 
-type DBPort interface {
-	Get(ctx context.Context, id int64) (domain.Order, error)
-	Save(context.Context, *domain.Order) error
+type PaymentPort interface {
+	Charge(context.Context, *domain.Order) error
 }

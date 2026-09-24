@@ -1,6 +1,7 @@
 go 1.26.4
 
 use (
+	./e2e
 	./order-service
 	./payment-service
 )

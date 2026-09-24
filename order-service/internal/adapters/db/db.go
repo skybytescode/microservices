@@ -1,11 +1,14 @@
 package db
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/skybytescode/microservices/order-service/internal/application/core/domain"
+	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	"github.com/skybytescode/microservices/order-service/internal/application/core/domain"
 )
 
 type Order struct {
@@ -17,62 +20,69 @@ type Order struct {
 
 type OrderItem struct {
 	gorm.Model
-	OrderID     uint
 	ProductCode string
 	UnitPrice   float32
 	Quantity    int32
+	OrderID     uint
 }
 
-type Adapter struct{ db *gorm.DB }
-
-func NewAdapter(dataSourceUrl string) (*Adapter, error) {
-	db, err := gorm.Open(mysql.Open(dataSourceUrl), &gorm.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("db connection error: %v", err)
-	}
-	if err := db.AutoMigrate(&Order{}, &OrderItem{}); err != nil {
-		return nil, fmt.Errorf("db migration error: %v", err)
-	}
-	return &Adapter{db: db}, nil
+type Adapter struct {
+	db *gorm.DB
 }
 
-func (a Adapter) Save(order *domain.Order) error {
-	orderItems := make([]OrderItem, 0, len(order.OrderItems))
-	for _, it := range order.OrderItems {
-		orderItems = append(orderItems, OrderItem{
-			ProductCode: it.ProductCode,
-			UnitPrice:   it.UnitPrice,
-			Quantity:    it.Quantity,
+func (a Adapter) Get(ctx context.Context, id int64) (domain.Order, error) {
+	var orderEntity Order
+	res := a.db.WithContext(ctx).Preload("OrderItems").First(&orderEntity, id)
+	var orderItems []domain.OrderItem
+	for _, orderItem := range orderEntity.OrderItems {
+		orderItems = append(orderItems, domain.OrderItem{
+			ProductCode: orderItem.ProductCode,
+			UnitPrice:   orderItem.UnitPrice,
+			Quantity:    orderItem.Quantity,
 		})
 	}
-	orderModel := Order{CustomerID: order.CustomerID, Status: order.Status, OrderItems: orderItems}
-	res := a.db.Create(&orderModel)
+	order := domain.Order{
+		ID:         int64(orderEntity.ID),
+		CustomerID: orderEntity.CustomerID,
+		Status:     orderEntity.Status,
+		OrderItems: orderItems,
+		CreatedAt:  orderEntity.CreatedAt.UnixNano(),
+	}
+	return order, res.Error
+}
+
+func (a Adapter) Save(ctx context.Context, order *domain.Order) error {
+	var orderItems []OrderItem
+	for _, orderItem := range order.OrderItems {
+		orderItems = append(orderItems, OrderItem{
+			ProductCode: orderItem.ProductCode,
+			UnitPrice:   orderItem.UnitPrice,
+			Quantity:    orderItem.Quantity,
+		})
+	}
+	orderModel := Order{
+		CustomerID: order.CustomerID,
+		Status:     order.Status,
+		OrderItems: orderItems,
+	}
+	res := a.db.WithContext(ctx).Create(&orderModel)
 	if res.Error == nil {
 		order.ID = int64(orderModel.ID)
 	}
 	return res.Error
 }
 
-func (a Adapter) Get(id string) (domain.Order, error) {
-	var orderModel Order
-	res := a.db.Preload("OrderItems").First(&orderModel, "id = ?", id)
-	if res.Error != nil {
-		return domain.Order{}, res.Error
+func NewAdapter(dataSourceUrl string) (*Adapter, error) {
+	db, openErr := gorm.Open(mysql.Open(dataSourceUrl), &gorm.Config{})
+	if openErr != nil {
+		return nil, fmt.Errorf("db connection error: %v", openErr)
 	}
-
-	items := make([]domain.OrderItem, 0, len(orderModel.OrderItems))
-	for _, it := range orderModel.OrderItems {
-		items = append(items, domain.OrderItem{
-			ProductCode: it.ProductCode,
-			UnitPrice:   it.UnitPrice,
-			Quantity:    it.Quantity,
-		})
+	if err := db.Use(otelgorm.NewPlugin(otelgorm.WithDBName("order"))); err != nil {
+		return nil, fmt.Errorf("db otel plugin error: %v", err)
 	}
-
-	return domain.Order{
-		ID:         int64(orderModel.ID),
-		CustomerID: orderModel.CustomerID,
-		Status:     orderModel.Status,
-		OrderItems: items,
-	}, nil
+	err := db.AutoMigrate(&Order{}, OrderItem{})
+	if err != nil {
+		return nil, fmt.Errorf("db migration error: %v", err)
+	}
+	return &Adapter{db: db}, nil
 }
