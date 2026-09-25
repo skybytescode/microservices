@@ -14,8 +14,8 @@ build:
       dockerfile: Dockerfile
 deploy:
   kubectl:
-    defaultNamespace: default
     manifests:
+    - jaeger/deployment.yaml
     - mysql/deployment.yaml
     - order-service/deployment.yaml
     - payment-service/deployment.yaml

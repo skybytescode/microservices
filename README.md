@@ -8,6 +8,7 @@ Go microservices that talk to each other over gRPC.
 | [`payment-service/`](payment-service) | Payment service: gRPC server with a MySQL (GORM) store |
 | [`e2e/`](e2e) | End-to-end test: runs the whole stack with Docker Compose |
 | [`mysql/`](mysql) | MySQL manifest for Kubernetes |
+| [`jaeger/`](jaeger) | Jaeger manifest for Kubernetes (trace collector and UI) |
 
 Each folder is its own Go module.
 
@@ -29,10 +30,18 @@ over gRPC to charge the total price. If the charge fails, Order returns
 
 ## Run everything on Kubernetes
 
-Needs a local cluster (for example minikube) and [Skaffold](https://skaffold.dev/):
+Needs a local cluster (kind or minikube) and [Skaffold](https://skaffold.dev/):
 
 ```sh
 skaffold dev
+```
+
+This deploys Jaeger, MySQL, Order and Payment. To call Order and to open the
+Jaeger UI at http://localhost:16686:
+
+```sh
+kubectl port-forward svc/order 8080:8080
+kubectl -n jaeger port-forward svc/jaeger-otel 16686:16686
 ```
 
 ## Tests

@@ -7,3 +7,6 @@ docs/*.pdf
 *.exe
 *.test
 *.out
+
+# Tool binaries downloaded into the repo
+/skaffold
