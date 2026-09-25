@@ -1,21 +1,23 @@
-apiVersion: skaffold/v2beta29
+apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
   name: microservices
 build:
   artifacts:
-  - image: order
-    context: order-service
-    docker:
-      dockerfile: Dockerfile
-  - image: payment
-    context: payment-service
-    docker:
-      dockerfile: Dockerfile
-deploy:
-  kubectl:
-    manifests:
+    - image: order
+      context: order-service
+      docker:
+        dockerfile: Dockerfile
+    - image: payment
+      context: payment-service
+      docker:
+        dockerfile: Dockerfile
+manifests:
+  rawYaml:
     - jaeger/deployment.yaml
     - mysql/deployment.yaml
     - order-service/deployment.yaml
     - payment-service/deployment.yaml
+deploy:
+  kubectl: {}
+  kubeContext: kind-microservices
