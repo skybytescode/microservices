@@ -98,6 +98,8 @@ github.com/skybytescode/microservices-proto/golang/order v1.1.0 h1:zhogatWz8D0CP
 github.com/skybytescode/microservices-proto/golang/order v1.1.0/go.mod h1:q3XQvbzBIOAU1FulBI3IUYPq2zweDp8LxqwJpb8+ibw=
 github.com/skybytescode/microservices-proto/golang/payment v1.1.0 h1:sSBLdn+cEmGRnI/xn80/v8QZJQHctWkvHK1CM3VpooE=
 github.com/skybytescode/microservices-proto/golang/payment v1.1.0/go.mod h1:+bbOF0w/LPALcTas9lYGT0hvmhh5jQ6Sus22RUdONHw=
+github.com/skybytescode/microservices-proto/golang/shipping v1.2.0 h1:XyQErHHnjVh8OWgk27a4aTVythpLFEmrpsf2FL5FpU4=
+github.com/skybytescode/microservices-proto/golang/shipping v1.2.0/go.mod h1:mRkbLCGOHMP7p7zOqFCj1SrKO55mqXjRjN5Qj3DFaHc=
 github.com/stretchr/objx v0.5.3 h1:jmXUvGomnU1o3W/V5h2VEradbpJDwGrzugQQvL0POH4=
 github.com/stretchr/objx v0.5.3/go.mod h1:rDQraq+vQZU7Fde9LOZLr8Tax6zZvy4kuNKF+QYS+U0=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=

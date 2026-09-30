@@ -14,18 +14,16 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/skybytescode/microservices/order-service/config"
-	"github.com/skybytescode/microservices/order-service/internal/adapters/db"
-	"github.com/skybytescode/microservices/order-service/internal/adapters/grpc"
-	"github.com/skybytescode/microservices/order-service/internal/adapters/payment"
-	"github.com/skybytescode/microservices/order-service/internal/adapters/shipping"
-	"github.com/skybytescode/microservices/order-service/internal/application/core/api"
+	"github.com/skybytescode/microservices/shipping-service/config"
+	"github.com/skybytescode/microservices/shipping-service/internal/adapters/db"
+	"github.com/skybytescode/microservices/shipping-service/internal/adapters/grpc"
+	"github.com/skybytescode/microservices/shipping-service/internal/application/core/api"
 )
 
 const (
-	service     = "order"
+	service     = "shipping"
 	environment = "dev"
-	id          = 1
+	id          = 3
 )
 
 // tracerProvider exports spans over OTLP to the endpoint in
@@ -85,17 +83,7 @@ func main() {
 		log.Fatalf("Failed to connect to database. Error: %v", err)
 	}
 
-	paymentAdapter, err := payment.NewAdapter(config.GetPaymentServiceUrl())
-	if err != nil {
-		log.Fatalf("Failed to initialize payment stub. Error: %v", err)
-	}
-
-	shippingAdapter, err := shipping.NewAdapter(config.GetShippingServiceUrl())
-	if err != nil {
-		log.Fatalf("Failed to initialize shipping stub. Error: %v", err)
-	}
-
-	application := api.NewApplication(dbAdapter, paymentAdapter, shippingAdapter)
+	application := api.NewApplication(dbAdapter)
 	grpcAdapter := grpc.NewAdapter(application, config.GetApplicationPort())
 	grpcAdapter.Run()
 }

@@ -51,6 +51,7 @@ data:
   initdb.sql: |
     CREATE DATABASE IF NOT EXISTS payments;
     CREATE DATABASE IF NOT EXISTS orders;
+    CREATE DATABASE IF NOT EXISTS shippings;
 ---
 apiVersion: v1
 kind: Service

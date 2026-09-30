@@ -23,6 +23,15 @@ func (p *mockedPayment) Charge(ctx context.Context, order *domain.Order) error {
 	return args.Error(0)
 }
 
+type mockedShipping struct {
+	mock.Mock
+}
+
+func (s *mockedShipping) Ship(ctx context.Context, order *domain.Order) error {
+	args := s.Called(ctx, order)
+	return args.Error(0)
+}
+
 type mockedDb struct {
 	mock.Mock
 }
@@ -39,11 +48,13 @@ func (d *mockedDb) Get(ctx context.Context, id int64) (domain.Order, error) {
 
 func TestPlaceOrder(t *testing.T) {
 	payment := new(mockedPayment)
+	shipping := new(mockedShipping)
 	db := new(mockedDb)
+	shipping.On("Ship", mock.Anything, mock.Anything).Return(nil)
 	payment.On("Charge", mock.Anything, mock.Anything).Return(nil)
 	db.On("Save", mock.Anything, mock.Anything).Return(nil)
 
-	application := NewApplication(db, payment)
+	application := NewApplication(db, payment, shipping)
 	_, err := application.PlaceOrder(context.Background(), domain.Order{
 		CustomerID: 123,
 		OrderItems: []domain.OrderItem{
@@ -60,11 +71,13 @@ func TestPlaceOrder(t *testing.T) {
 
 func Test_Should_Return_Error_When_Db_Persistence_Fail(t *testing.T) {
 	payment := new(mockedPayment)
+	shipping := new(mockedShipping)
 	db := new(mockedDb)
+	shipping.On("Ship", mock.Anything, mock.Anything).Return(nil)
 	payment.On("Charge", mock.Anything, mock.Anything).Return(nil)
 	db.On("Save", mock.Anything, mock.Anything).Return(errors.New("connection error"))
 
-	application := NewApplication(db, payment)
+	application := NewApplication(db, payment, shipping)
 	_, err := application.PlaceOrder(context.Background(), domain.Order{
 		CustomerID: 123,
 		OrderItems: []domain.OrderItem{
@@ -81,11 +94,13 @@ func Test_Should_Return_Error_When_Db_Persistence_Fail(t *testing.T) {
 
 func Test_Should_Return_Error_When_Payment_Fail(t *testing.T) {
 	payment := new(mockedPayment)
+	shipping := new(mockedShipping)
 	db := new(mockedDb)
+	shipping.On("Ship", mock.Anything, mock.Anything).Return(nil)
 	payment.On("Charge", mock.Anything, mock.Anything).Return(errors.New("insufficient balance"))
 	db.On("Save", mock.Anything, mock.Anything).Return(nil)
 
-	application := NewApplication(db, payment)
+	application := NewApplication(db, payment, shipping)
 	_, err := application.PlaceOrder(context.Background(), domain.Order{
 		CustomerID: 123,
 		OrderItems: []domain.OrderItem{
@@ -100,5 +115,32 @@ func Test_Should_Return_Error_When_Payment_Fail(t *testing.T) {
 	st, _ := status.FromError(err)
 	assert.Equal(t, st.Message(), "order creation failed")
 	assert.Equal(t, st.Details()[0].(*errdetails.BadRequest).FieldViolations[0].Description, "insufficient balance")
+	assert.Equal(t, st.Code(), codes.InvalidArgument)
+}
+
+func Test_Should_Return_Error_When_Shipping_Fail(t *testing.T) {
+	payment := new(mockedPayment)
+	shipping := new(mockedShipping)
+	db := new(mockedDb)
+	payment.On("Charge", mock.Anything, mock.Anything).Return(nil)
+	shipping.On("Ship", mock.Anything, mock.Anything).Return(errors.New("address not supported"))
+	db.On("Save", mock.Anything, mock.Anything).Return(nil)
+
+	application := NewApplication(db, payment, shipping)
+	_, err := application.PlaceOrder(context.Background(), domain.Order{
+		CustomerID: 123,
+		OrderItems: []domain.OrderItem{
+			{
+				ProductCode: "lamp",
+				UnitPrice:   4.5,
+				Quantity:    2,
+			},
+		},
+		CreatedAt: 0,
+	})
+	st, _ := status.FromError(err)
+	assert.Equal(t, st.Message(), "order creation failed")
+	assert.Equal(t, st.Details()[0].(*errdetails.BadRequest).FieldViolations[0].Field, "shipping")
+	assert.Equal(t, st.Details()[0].(*errdetails.BadRequest).FieldViolations[0].Description, "address not supported")
 	assert.Equal(t, st.Code(), codes.InvalidArgument)
 }

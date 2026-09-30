@@ -8,6 +8,15 @@ services:
       APPLICATION_PORT: 8081
       ENV: "development"
       DATA_SOURCE_URL: "root:s3cr3t@tcp(mysql:3306)/payments?charset=utf8mb4&parseTime=True&loc=Local"
+  shipping:
+    depends_on:
+      mysql:
+        condition: service_healthy
+    build: ../../shipping-service/
+    environment:
+      APPLICATION_PORT: 8082
+      ENV: "development"
+      DATA_SOURCE_URL: "root:s3cr3t@tcp(mysql:3306)/shippings?charset=utf8mb4&parseTime=True&loc=Local"
   order:
     depends_on:
       mysql:
@@ -20,6 +29,7 @@ services:
       ENV: "development"
       DATA_SOURCE_URL: "root:s3cr3t@tcp(mysql:3306)/orders?charset=utf8mb4&parseTime=True&loc=Local"
       PAYMENT_SERVICE_URL: "payment:8081"
+      SHIPPING_SERVICE_URL: "shipping:8082"
   mysql:
     image: "mysql:8.0.30"
     environment:
@@ -27,7 +37,7 @@ services:
     volumes:
       - "./init.sql:/docker-entrypoint-initdb.d/init.sql"
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-uroot", "-ps3cr3t"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-ps3cr3t"]
       interval: 5s
       timeout: 5s
       retries: 20

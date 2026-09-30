@@ -1,12 +1,13 @@
 module github.com/skybytescode/microservices/order-service
 
-go 1.26.4
+go 1.26.8
 
 require (
 	github.com/moby/moby/api v1.55.0
 	github.com/sirupsen/logrus v1.10.2
 	github.com/skybytescode/microservices-proto/golang/order v1.1.0
 	github.com/skybytescode/microservices-proto/golang/payment v1.1.0
+	github.com/skybytescode/microservices-proto/golang/shipping v1.2.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/uptrace/opentelemetry-go-extra/otelgorm v0.3.2

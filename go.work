@@ -1,7 +1,8 @@
-go 1.26.4
+go 1.26.8
 
 use (
 	./e2e
 	./order-service
 	./payment-service
+	./shipping-service
 )

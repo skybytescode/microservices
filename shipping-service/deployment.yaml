@@ -1,56 +1,51 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: order
+  name: shipping
   labels:
-    service: order
+    service: shipping
 spec:
+  clusterIP: None
   selector:
-    service: order
+    service: shipping
   ports:
     - name: grpc
-      port: 8080
+      port: 8082
       protocol: TCP
-      targetPort: 8080
+      targetPort: 8082
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order
+  name: shipping
   labels:
-    service: order
+    service: shipping
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service: order
+      service: shipping
   template:
     metadata:
       labels:
-        service: order
+        service: shipping
     spec:
       initContainers:
       - name: mysql-check
         image: busybox:1.28
         command: ['sh', '-c', 'until nslookup mysql; do echo waiting for mysql; sleep 10; done;']
       containers:
-      - name: order
-        image: order
+      - name: shipping
+        image: shipping
         env:
           - name: APPLICATION_PORT
-            value: "8080"
+            value: "8082"
           - name: ENV
             value: "prod"
           - name: DATA_SOURCE_URL
-            value: "root:s3cr3t@tcp(mysql:3306)/orders?charset=utf8mb4&parseTime=True&loc=Local"
-          - name: PAYMENT_SERVICE_URL
-            value: "payment:8081"
-          - name: SHIPPING_SERVICE_URL
-            value: "shipping:8082"
+            value: "root:s3cr3t@tcp(mysql:3306)/shippings?charset=utf8mb4&parseTime=True&loc=Local"
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
             value: "http://jaeger-otel.jaeger.svc.cluster.local:4318"
-        ports:
-          - containerPort: 8080
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -59,20 +54,19 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: GRPC
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     cert-manager.io/cluster-issuer: selfsigned-issuer
-  name: order
+  name: shipping
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /Order
+          - path: /Shipping
             pathType: Prefix
             backend:
               service:
-                name: order
+                name: shipping
                 port:
-                  number: 8080
+                  number: 8082
   tls:
     - hosts:
         - ingress.local
-      secretName: order-tls

@@ -6,12 +6,13 @@ Go microservices that talk to each other over gRPC.
 |---|---|
 | [`order-service/`](order-service) | Order service: gRPC server with a MySQL (GORM) store |
 | [`payment-service/`](payment-service) | Payment service: gRPC server with a MySQL (GORM) store |
+| [`shipping-service/`](shipping-service) | Shipping service: gRPC server with a MySQL (GORM) store |
 | [`e2e/`](e2e) | End-to-end test: runs the whole stack with Docker Compose |
 | [`mysql/`](mysql) | MySQL manifest for Kubernetes |
 | [`jaeger/`](jaeger) | Jaeger manifest for Kubernetes (trace collector and UI) |
 | [`kind/`](kind) | Config for the local kind cluster |
 
-`order-service`, `payment-service` and `e2e` are each their own Go module,
+`order-service`, `payment-service`, `shipping-service` and `e2e` are each their own Go module,
 tied together by `go.work`.
 
 The `.proto` contracts and the Go code generated from them live in
@@ -27,8 +28,11 @@ go get github.com/skybytescode/microservices-proto/golang/order@v1.0.1
 ## How the services talk
 
 A client calls `Order.Create`. Order saves the order, then calls `Payment.Create`
-over gRPC to charge the total price. If the charge fails, Order returns
-`InvalidArgument` with the payment error in the status details.
+over gRPC to charge the total price. Once the charge succeeds, it calls
+`Shipping.Create` with the order's items; Shipping saves the shipment and
+estimates delivery at one day plus one more for every 5 items. If the charge or
+the shipment fails, Order returns `InvalidArgument` with that service's error in
+the status details.
 
 ## Run everything on Kubernetes
 
@@ -61,8 +65,8 @@ kubectl -n ingress-nginx wait --for=condition=ready pod \
 skaffold dev
 ```
 
-This builds the `order` and `payment` images, loads them into the cluster and
-deploys Jaeger, MySQL, Order and Payment. It rebuilds when you save a file and
+This builds the `order`, `payment` and `shipping` images, loads them into the
+cluster and deploys Jaeger, MySQL, Order, Payment and Shipping. It rebuilds when you save a file and
 removes everything on Ctrl+C. Use `skaffold run` to deploy once and
 `skaffold delete` to remove it. [`skaffold.yaml`](skaffold.yaml) always deploys
 to the `kind-microservices` context, whatever your current context is.
@@ -76,8 +80,8 @@ grpcurl -insecure -import-path order -proto order.proto \
   localhost:443 Order/Create
 ```
 
-- The Ingress sends paths starting with `/Order` to the `order` service and
-  `/Payment` to the `payment` service.
+- The Ingress sends paths starting with `/Order` to the `order` service,
+  `/Payment` to the `payment` service and `/Shipping` to the `shipping` service.
 - gRPC through ingress-nginx needs TLS. The controller answers with its built-in
   self-signed certificate, hence `-insecure`.
 - The pods run with `ENV=prod`, which turns off gRPC reflection, so grpcurl
@@ -90,7 +94,7 @@ kubectl -n jaeger port-forward svc/jaeger-otel 16686:16686
 ```
 
 Open http://localhost:16686, pick service **order** and click **Find Traces**.
-An `Order/Create` call shows up as one trace across Order and Payment. Jaeger
+An `Order/Create` call shows up as one trace across Order, Payment and Shipping. Jaeger
 keeps traces in memory, so they are lost when its pod restarts. So is the MySQL
 data: MySQL has no persistent volume.
 
