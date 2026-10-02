@@ -1,8 +1,12 @@
 package domain
 
 import (
+	"errors"
 	"time"
 )
+
+// ErrOrderNotFound is returned when no order has the requested ID.
+var ErrOrderNotFound = errors.New("order not found")
 
 type Order struct {
 	ID         int64       `json:"id"`

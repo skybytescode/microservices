@@ -68,6 +68,12 @@ func (o *OrderDatabaseTestSuite) Test_Should_Get_Order() {
 	o.Equal(int64(2), ord.CustomerID)
 }
 
+func (o *OrderDatabaseTestSuite) Test_Should_Return_Not_Found_For_Missing_Order() {
+	adapter, _ := NewAdapter(o.DataSourceUrl)
+	_, err := adapter.Get(context.Background(), 999999)
+	o.ErrorIs(err, domain.ErrOrderNotFound)
+}
+
 func TestOrderDatabaseTestSuite(t *testing.T) {
 	suite.Run(t, new(OrderDatabaseTestSuite))
 }
