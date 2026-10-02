@@ -11,6 +11,7 @@ Go microservices that talk to each other over gRPC.
 | [`mysql/`](mysql) | MySQL manifest for Kubernetes |
 | [`jaeger/`](jaeger) | Jaeger manifest for Kubernetes (trace collector and UI) |
 | [`prometheus/`](prometheus) | Prometheus manifest for Kubernetes (scrapes the services' metrics) |
+| [`grafana/`](grafana) | Grafana for Kubernetes, with its data sources and the Microservices dashboard (kustomize) |
 | [`kind/`](kind) | Config for the local kind cluster |
 
 `order-service`, `payment-service`, `shipping-service` and `e2e` are each their own Go module,
@@ -67,7 +68,7 @@ skaffold dev
 ```
 
 This builds the `order`, `payment` and `shipping` images, loads them into the
-cluster and deploys Jaeger, Prometheus, MySQL, Order, Payment and Shipping. It rebuilds when you save a file and
+cluster and deploys Jaeger, Prometheus, Grafana, MySQL, Order, Payment and Shipping. It rebuilds when you save a file and
 removes everything on Ctrl+C. Use `skaffold run` to deploy once and
 `skaffold delete` to remove it. [`skaffold.yaml`](skaffold.yaml) always deploys
 to the `kind-microservices` context, whatever your current context is.
@@ -118,6 +119,28 @@ In the graph view, turn on **Show exemplars**: each dot carries the `trace_id`
 of a request, which you can open in Jaeger. Like Jaeger, Prometheus keeps its
 data in the pod, so it is lost when the pod restarts.
 
+### 7. Open the Grafana dashboard
+
+```sh
+kubectl -n monitoring port-forward svc/grafana 3000:3000
+```
+
+Open http://localhost:3000. The **Microservices** dashboard is the home page,
+with no login (fine for a local cluster only). It shows:
+
+![Microservices dashboard in Grafana](docs/images/grafana-dashboard.jpg)
+
+- **Overview:** orders per second, error rate, p95 latency of Order and how many service pods are up
+- **Traffic:** requests and errors per second for each service, and p50/p95/p99 latency
+- **Order → Payment and Shipping:** Order's downstream calls by result, and their p95 latency
+- **Go runtime:** goroutines, heap and CPU per service
+
+The dots on the latency graphs are exemplars: click one and choose
+**Query with Jaeger** to open that request's trace. The dashboard lives in
+[`grafana/dashboards/microservices.json`](grafana/dashboards/microservices.json);
+changes made in the UI are lost when the pod restarts, so export them to that
+file to keep them.
+
 ### Troubleshooting
 
 | Symptom | Likely cause |
@@ -126,6 +149,7 @@ data in the pod, so it is lost when the pod restarts.
 | grpcurl: `connection refused` | The ingress controller is not ready yet; rerun the `wait` from step 2 |
 | grpcurl: `404` or `Unimplemented` | The Ingress is missing: `kubectl get ingress` |
 | Pods log `Unauthorized`, calls time out | The system clock jumped back and the pods' tokens are now "from the future"; delete the `kube-proxy`, `coredns` and `kindnet` pods in `kube-system` and restart ingress-nginx and the services |
+| Grafana: Jaeger data source returns `404` | Jaeger 2.21 dropped the API Grafana uses; keep the image at 2.20 |
 | Pods stuck in `Init` | MySQL is not ready yet; the init container waits for it |
 
 ## Tests

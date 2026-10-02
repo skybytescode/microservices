@@ -24,6 +24,9 @@ manifests:
     - order-service/deployment.yaml
     - payment-service/deployment.yaml
     - shipping-service/deployment.yaml
+  kustomize:
+    paths:
+      - grafana
 deploy:
   kubectl: {}
   kubeContext: kind-microservices
