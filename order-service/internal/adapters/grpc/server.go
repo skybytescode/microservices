@@ -11,6 +11,7 @@ import (
 
 	"github.com/skybytescode/microservices-proto/golang/order"
 	"github.com/skybytescode/microservices/order-service/config"
+	"github.com/skybytescode/microservices/order-service/internal/adapters/metrics"
 	"github.com/skybytescode/microservices/order-service/internal/ports"
 )
 
@@ -33,9 +34,11 @@ func (a *Adapter) Run() {
 
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.ChainUnaryInterceptor(metrics.Server.UnaryServerInterceptor(metrics.Exemplar)),
 	)
 	a.server = grpcServer
 	order.RegisterOrderServer(grpcServer, a)
+	metrics.Server.InitializeMetrics(grpcServer)
 	if config.GetEnv() == "development" {
 		reflection.Register(grpcServer)
 	}

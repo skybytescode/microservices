@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/skybytescode/microservices-proto/golang/shipping"
+	"github.com/skybytescode/microservices/order-service/internal/adapters/metrics"
 	"github.com/skybytescode/microservices/order-service/internal/application/core/domain"
 )
 
@@ -20,6 +21,7 @@ func NewAdapter(shippingServiceUrl string) (*Adapter, error) {
 	opts = append(opts,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		grpc.WithChainUnaryInterceptor(metrics.Client.UnaryClientInterceptor(metrics.Exemplar)),
 	)
 	conn, err := grpc.NewClient(shippingServiceUrl, opts...)
 	if err != nil {

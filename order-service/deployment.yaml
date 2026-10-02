@@ -28,6 +28,8 @@ spec:
     metadata:
       labels:
         service: order
+      annotations:
+        prometheus.io/scrape: "true"
     spec:
       initContainers:
       - name: mysql-check
@@ -49,8 +51,12 @@ spec:
             value: "shipping:8082"
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
             value: "http://jaeger-otel.jaeger.svc.cluster.local:4318"
+          - name: METRICS_PORT
+            value: "2112"
         ports:
           - containerPort: 8080
+          - name: metrics
+            containerPort: 2112
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

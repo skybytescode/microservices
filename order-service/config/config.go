@@ -33,6 +33,22 @@ func GetShippingServiceUrl() string {
 	return getEnvironmentValue("SHIPPING_SERVICE_URL")
 }
 
+// GetMetricsPort returns the port that serves Prometheus metrics, or 0 when
+// METRICS_PORT is not set, which turns the metrics endpoint off.
+func GetMetricsPort() int {
+	portStr := os.Getenv("METRICS_PORT")
+	if portStr == "" {
+		return 0
+	}
+	port, err := strconv.Atoi(portStr)
+
+	if err != nil {
+		log.Fatalf("metrics port: %s is invalid", portStr)
+	}
+
+	return port
+}
+
 func getEnvironmentValue(key string) string {
 	if os.Getenv(key) == "" {
 		log.Fatalf("%s environment variable is missing.", key)

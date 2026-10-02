@@ -10,6 +10,7 @@ Go microservices that talk to each other over gRPC.
 | [`e2e/`](e2e) | End-to-end test: runs the whole stack with Docker Compose |
 | [`mysql/`](mysql) | MySQL manifest for Kubernetes |
 | [`jaeger/`](jaeger) | Jaeger manifest for Kubernetes (trace collector and UI) |
+| [`prometheus/`](prometheus) | Prometheus manifest for Kubernetes (scrapes the services' metrics) |
 | [`kind/`](kind) | Config for the local kind cluster |
 
 `order-service`, `payment-service`, `shipping-service` and `e2e` are each their own Go module,
@@ -66,7 +67,7 @@ skaffold dev
 ```
 
 This builds the `order`, `payment` and `shipping` images, loads them into the
-cluster and deploys Jaeger, MySQL, Order, Payment and Shipping. It rebuilds when you save a file and
+cluster and deploys Jaeger, Prometheus, MySQL, Order, Payment and Shipping. It rebuilds when you save a file and
 removes everything on Ctrl+C. Use `skaffold run` to deploy once and
 `skaffold delete` to remove it. [`skaffold.yaml`](skaffold.yaml) always deploys
 to the `kind-microservices` context, whatever your current context is.
@@ -98,6 +99,25 @@ An `Order/Create` call shows up as one trace across Order, Payment and Shipping.
 keeps traces in memory, so they are lost when its pod restarts. So is the MySQL
 data: MySQL has no persistent volume.
 
+### 6. Open the Prometheus UI
+
+```sh
+kubectl -n monitoring port-forward svc/prometheus 9090:9090
+```
+
+Open http://localhost:9090. **Status → Targets** lists the `order`, `payment`
+and `shipping` pods. Some queries to try:
+
+| Query | Shows |
+|---|---|
+| `sum by (job, grpc_method, grpc_code) (rate(grpc_server_handled_total[5m]))` | Requests per second per service, method and status code |
+| `histogram_quantile(0.95, sum by (le, job) (rate(grpc_server_handling_seconds_bucket[5m])))` | 95th percentile latency per service |
+| `sum by (grpc_service, grpc_code) (rate(grpc_client_handled_total[5m]))` | Order's calls to Payment and Shipping, by result |
+
+In the graph view, turn on **Show exemplars**: each dot carries the `trace_id`
+of a request, which you can open in Jaeger. Like Jaeger, Prometheus keeps its
+data in the pod, so it is lost when the pod restarts.
+
 ### Troubleshooting
 
 | Symptom | Likely cause |
@@ -105,6 +125,7 @@ data: MySQL has no persistent volume.
 | `kind create` fails with "address already in use" | Something else uses port 80 or 443: `sudo ss -ltnp \| grep -E ':80 \|:443 '` |
 | grpcurl: `connection refused` | The ingress controller is not ready yet; rerun the `wait` from step 2 |
 | grpcurl: `404` or `Unimplemented` | The Ingress is missing: `kubectl get ingress` |
+| Pods log `Unauthorized`, calls time out | The system clock jumped back and the pods' tokens are now "from the future"; delete the `kube-proxy`, `coredns` and `kindnet` pods in `kube-system` and restart ingress-nginx and the services |
 | Pods stuck in `Init` | MySQL is not ready yet; the init container waits for it |
 
 ## Tests
@@ -119,3 +140,12 @@ cd e2e && go test ./...             # builds both images and runs the full stack
 Both services export OpenTelemetry traces over OTLP when
 `OTEL_EXPORTER_OTLP_ENDPOINT` is set (for example `http://localhost:4318` for a
 local Jaeger). Logs are JSON and include `trace_id` and `span_id`.
+
+## Metrics
+
+Each service serves Prometheus metrics on `/metrics` when `METRICS_PORT` is set
+(`2112` in the Kubernetes manifests): gRPC server request counts and latency
+histograms, Go runtime and process metrics, and, for Order, client metrics for
+its calls to Payment and Shipping. Latency samples carry the request's trace ID
+as an exemplar. Prometheus scrapes every pod annotated
+`prometheus.io/scrape: "true"` on its container port named `metrics`.

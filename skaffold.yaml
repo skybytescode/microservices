@@ -19,6 +19,7 @@ build:
 manifests:
   rawYaml:
     - jaeger/deployment.yaml
+    - prometheus/deployment.yaml
     - mysql/deployment.yaml
     - order-service/deployment.yaml
     - payment-service/deployment.yaml
