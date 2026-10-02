@@ -2,6 +2,8 @@
 
 Go microservices that talk to each other over gRPC.
 
+![Architecture](docs/images/architecture.png)
+
 | Folder | What it is |
 |---|---|
 | [`order-service/`](order-service) | Order service: gRPC server with a MySQL (GORM) store |
@@ -26,6 +28,14 @@ Each service's stubs are a separate module there, released with tags like
 cd order-service
 go get github.com/skybytescode/microservices-proto/golang/order@v1.0.1
 ```
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Running on Kubernetes](docs/images/grpc-calls.png) Pods on kind and real gRPC calls | ![Grafana dashboard](docs/images/grafana-dashboard.jpg) Grafana dashboard |
+| ![Exemplar](docs/images/grafana-exemplar.jpg) Latency sample linked to its trace | ![Jaeger trace](docs/images/jaeger-trace.png) One order traced across all services |
+| ![Dependencies](docs/images/jaeger-dependencies.jpg) Service graph from live traffic | ![Prometheus targets](docs/images/prometheus-targets.png) Pods discovered by Prometheus |
 
 ## How the services talk
 
@@ -136,7 +146,8 @@ with no login (fine for a local cluster only). It shows:
 - **Go runtime:** goroutines, heap and CPU per service
 
 The dots on the latency graphs are exemplars: click one and choose
-**Query with Jaeger** to open that request's trace. The dashboard lives in
+**Open in Jaeger UI** (with the Jaeger port-forward from step 5 running), or
+**Query with Jaeger** and pick the **TraceID** query type, to open that request's trace. The dashboard lives in
 [`grafana/dashboards/microservices.json`](grafana/dashboards/microservices.json);
 changes made in the UI are lost when the pod restarts, so export them to that
 file to keep them.
