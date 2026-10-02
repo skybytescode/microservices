@@ -19,10 +19,14 @@ build:
 manifests:
   rawYaml:
     - jaeger/deployment.yaml
+    - prometheus/deployment.yaml
     - mysql/deployment.yaml
     - order-service/deployment.yaml
     - payment-service/deployment.yaml
     - shipping-service/deployment.yaml
+  kustomize:
+    paths:
+      - grafana
 deploy:
   kubectl: {}
   kubeContext: kind-microservices

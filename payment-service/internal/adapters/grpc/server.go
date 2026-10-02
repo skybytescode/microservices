@@ -11,6 +11,7 @@ import (
 
 	"github.com/skybytescode/microservices-proto/golang/payment"
 	"github.com/skybytescode/microservices/payment-service/config"
+	"github.com/skybytescode/microservices/payment-service/internal/adapters/metrics"
 	"github.com/skybytescode/microservices/payment-service/internal/ports"
 )
 
@@ -33,9 +34,11 @@ func (a *Adapter) Run() {
 
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.ChainUnaryInterceptor(metrics.Server.UnaryServerInterceptor(metrics.Exemplar)),
 	)
 	a.server = grpcServer
 	payment.RegisterPaymentServer(grpcServer, a)
+	metrics.Server.InitializeMetrics(grpcServer)
 	if config.GetEnv() == "development" {
 		reflection.Register(grpcServer)
 	}

@@ -1,0 +1,18 @@
+# Built with kustomize so the dashboard and data sources stay plain files. The
+# generated ConfigMap names carry a content hash, so Grafana restarts and picks
+# up any change to them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - deployment.yaml
+configMapGenerator:
+  - name: grafana-datasources
+    files:
+      - datasources.yaml
+  - name: grafana-dashboard-providers
+    files:
+      - dashboards.yaml
+  - name: grafana-dashboards
+    files:
+      - dashboards/microservices.json

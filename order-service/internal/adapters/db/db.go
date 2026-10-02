@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
@@ -33,6 +34,9 @@ type Adapter struct {
 func (a Adapter) Get(ctx context.Context, id int64) (domain.Order, error) {
 	var orderEntity Order
 	res := a.db.WithContext(ctx).Preload("OrderItems").First(&orderEntity, id)
+	if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+		return domain.Order{}, domain.ErrOrderNotFound
+	}
 	var orderItems []domain.OrderItem
 	for _, orderItem := range orderEntity.OrderItems {
 		orderItems = append(orderItems, domain.OrderItem{

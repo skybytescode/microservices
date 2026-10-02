@@ -144,3 +144,14 @@ func Test_Should_Return_Error_When_Shipping_Fail(t *testing.T) {
 	assert.Equal(t, st.Details()[0].(*errdetails.BadRequest).FieldViolations[0].Description, "address not supported")
 	assert.Equal(t, st.Code(), codes.InvalidArgument)
 }
+
+func Test_Should_Return_Not_Found_When_Order_Does_Not_Exist(t *testing.T) {
+	db := new(mockedDb)
+	db.On("Get", mock.Anything, int64(42)).Return(domain.Order{}, domain.ErrOrderNotFound)
+
+	application := NewApplication(db, new(mockedPayment), new(mockedShipping))
+	_, err := application.GetOrder(context.Background(), 42)
+	st, _ := status.FromError(err)
+	assert.Equal(t, st.Code(), codes.NotFound)
+	assert.Equal(t, st.Message(), "order 42 not found")
+}

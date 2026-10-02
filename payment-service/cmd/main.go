@@ -17,6 +17,7 @@ import (
 	"github.com/skybytescode/microservices/payment-service/config"
 	"github.com/skybytescode/microservices/payment-service/internal/adapters/db"
 	"github.com/skybytescode/microservices/payment-service/internal/adapters/grpc"
+	"github.com/skybytescode/microservices/payment-service/internal/adapters/metrics"
 	"github.com/skybytescode/microservices/payment-service/internal/application/core/api"
 )
 
@@ -77,6 +78,10 @@ func main() {
 
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}))
+
+	if port := config.GetMetricsPort(); port != 0 {
+		metrics.Serve(port)
+	}
 
 	dbAdapter, err := db.NewAdapter(config.GetDataSourceURL())
 	if err != nil {

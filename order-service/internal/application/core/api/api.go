@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
@@ -55,5 +56,9 @@ func orderCreationFailed(field string, err error) error {
 }
 
 func (a Application) GetOrder(ctx context.Context, id int64) (domain.Order, error) {
-	return a.db.Get(ctx, id)
+	order, err := a.db.Get(ctx, id)
+	if errors.Is(err, domain.ErrOrderNotFound) {
+		return domain.Order{}, status.Errorf(codes.NotFound, "order %d not found", id)
+	}
+	return order, err
 }
