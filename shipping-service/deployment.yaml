@@ -33,9 +33,11 @@ spec:
         prometheus.io/scrape: "true"
     spec:
       initContainers:
+      # Wait until MySQL answers, not just until its DNS name exists. mysqladmin
+      # ping succeeds once the server is up, even without credentials.
       - name: mysql-check
-        image: busybox:1.28
-        command: ['sh', '-c', 'until nslookup mysql; do echo waiting for mysql; sleep 10; done;']
+        image: mysql:8
+        command: ['sh', '-c', 'until mysqladmin ping -h mysql --silent; do echo waiting for mysql; sleep 2; done']
       containers:
       - name: shipping
         image: shipping
@@ -44,8 +46,13 @@ spec:
             value: "8082"
           - name: ENV
             value: "prod"
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql
+                key: password
           - name: DATA_SOURCE_URL
-            value: "root:s3cr3t@tcp(mysql:3306)/shippings?charset=utf8mb4&parseTime=True&loc=Local"
+            value: "root:$(DB_PASSWORD)@tcp(mysql:3306)/shippings?charset=utf8mb4&parseTime=True&loc=Local"
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
             value: "http://jaeger-otel.jaeger.svc.cluster.local:4318"
           - name: METRICS_PORT

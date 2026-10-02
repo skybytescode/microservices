@@ -71,7 +71,18 @@ kubectl -n ingress-nginx wait --for=condition=ready pod \
   --selector=app.kubernetes.io/component=controller --timeout=180s
 ```
 
-### 3. Deploy
+### 3. Create the MySQL password (once)
+
+```sh
+kubectl create secret generic mysql --from-literal=password="$(openssl rand -hex 16)"
+```
+
+MySQL and the services read the root password from this Secret, so it never
+appears in the repo. MySQL keeps its data on a PersistentVolume, so the Secret
+must stay the same as long as that volume exists; to start over, run
+`skaffold delete` and `kubectl delete pvc data-mysql-0`.
+
+### 4. Deploy
 
 ```sh
 skaffold dev
@@ -83,7 +94,7 @@ removes everything on Ctrl+C. Use `skaffold run` to deploy once and
 `skaffold delete` to remove it. [`skaffold.yaml`](skaffold.yaml) always deploys
 to the `kind-microservices` context, whatever your current context is.
 
-### 4. Call the Order service
+### 5. Call the Order service
 
 ```sh
 cd ../microservices-proto   # a clone of skybytescode/microservices-proto
@@ -99,7 +110,7 @@ grpcurl -insecure -import-path order -proto order.proto \
 - The pods run with `ENV=prod`, which turns off gRPC reflection, so grpcurl
   needs the `.proto` files.
 
-### 5. Open the Jaeger UI
+### 6. Open the Jaeger UI
 
 ```sh
 kubectl -n jaeger port-forward svc/jaeger-otel 16686:16686
@@ -107,10 +118,9 @@ kubectl -n jaeger port-forward svc/jaeger-otel 16686:16686
 
 Open http://localhost:16686, pick service **order** and click **Find Traces**.
 An `Order/Create` call shows up as one trace across Order, Payment and Shipping. Jaeger
-keeps traces in memory, so they are lost when its pod restarts. So is the MySQL
-data: MySQL has no persistent volume.
+keeps traces in memory, so they are lost when its pod restarts.
 
-### 6. Open the Prometheus UI
+### 7. Open the Prometheus UI
 
 ```sh
 kubectl -n monitoring port-forward svc/prometheus 9090:9090
@@ -129,7 +139,7 @@ In the graph view, turn on **Show exemplars**: each dot carries the `trace_id`
 of a request, which you can open in Jaeger. Like Jaeger, Prometheus keeps its
 data in the pod, so it is lost when the pod restarts.
 
-### 7. Open the Grafana dashboard
+### 8. Open the Grafana dashboard
 
 ```sh
 kubectl -n monitoring port-forward svc/grafana 3000:3000
@@ -146,7 +156,7 @@ with no login (fine for a local cluster only). It shows:
 - **Go runtime:** goroutines, heap and CPU per service
 
 The dots on the latency graphs are exemplars: click one and choose
-**Open in Jaeger UI** (with the Jaeger port-forward from step 5 running), or
+**Open in Jaeger UI** (with the Jaeger port-forward from step 6 running), or
 **Query with Jaeger** and pick the **TraceID** query type, to open that request's trace. The dashboard lives in
 [`grafana/dashboards/microservices.json`](grafana/dashboards/microservices.json);
 changes made in the UI are lost when the pod restarts, so export them to that
@@ -161,6 +171,8 @@ file to keep them.
 | grpcurl: `404` or `Unimplemented` | The Ingress is missing: `kubectl get ingress` |
 | Pods log `Unauthorized`, calls time out | The system clock jumped back and the pods' tokens are now "from the future"; delete the `kube-proxy`, `coredns` and `kindnet` pods in `kube-system` and restart ingress-nginx and the services |
 | Grafana: Jaeger data source returns `404` | Jaeger 2.21 dropped the API Grafana uses; keep the image at 2.20 |
+| Pods stuck in `CreateContainerConfigError` | The `mysql` Secret is missing; create it (step 3) |
+| `skaffold run` fails with `Forbidden: updates to statefulset spec` | MySQL was deployed before it had a volume; `kubectl delete statefulset mysql` once, then deploy again |
 | Pods stuck in `Init` | MySQL is not ready yet; the init container waits for it |
 
 ## Tests

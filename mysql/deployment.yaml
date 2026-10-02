@@ -1,3 +1,6 @@
+# The root password comes from the "mysql" Secret, which is not in the repo;
+# create it once as described in the README. Data lives on a PersistentVolume, so
+# the databases survive MySQL restarts and redeploys.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -19,22 +22,27 @@ spec:
           name: mysql
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: s3cr3t
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: password
           ports:
             - containerPort: 3306
               name: mysql
           volumeMounts:
             - name: mysql-initdb
               mountPath: /docker-entrypoint-initdb.d
+            - name: data
+              mountPath: /var/lib/mysql
           livenessProbe:
             exec:
-              command: [ "mysqladmin", "ping", "-ps3cr3t" ]
+              command: [ "sh", "-c", 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -uroot' ]
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
           readinessProbe:
             exec:
-              command: [ "mysql", "-h", "127.0.0.1", "-ps3cr3t", "-e", "SELECT 1" ]
+              command: [ "sh", "-c", 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -h 127.0.0.1 -uroot -e "SELECT 1"' ]
             initialDelaySeconds: 5
             periodSeconds: 2
             timeoutSeconds: 1
@@ -42,6 +50,14 @@ spec:
         - name: mysql-initdb
           configMap:
             name: mysql-initdb-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
 ---
 apiVersion: v1
 kind: ConfigMap

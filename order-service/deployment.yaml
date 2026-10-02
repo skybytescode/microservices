@@ -32,9 +32,11 @@ spec:
         prometheus.io/scrape: "true"
     spec:
       initContainers:
+      # Wait until MySQL answers, not just until its DNS name exists. mysqladmin
+      # ping succeeds once the server is up, even without credentials.
       - name: mysql-check
-        image: busybox:1.28
-        command: ['sh', '-c', 'until nslookup mysql; do echo waiting for mysql; sleep 10; done;']
+        image: mysql:8
+        command: ['sh', '-c', 'until mysqladmin ping -h mysql --silent; do echo waiting for mysql; sleep 2; done']
       containers:
       - name: order
         image: order
@@ -43,8 +45,13 @@ spec:
             value: "8080"
           - name: ENV
             value: "prod"
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql
+                key: password
           - name: DATA_SOURCE_URL
-            value: "root:s3cr3t@tcp(mysql:3306)/orders?charset=utf8mb4&parseTime=True&loc=Local"
+            value: "root:$(DB_PASSWORD)@tcp(mysql:3306)/orders?charset=utf8mb4&parseTime=True&loc=Local"
           - name: PAYMENT_SERVICE_URL
             value: "payment:8081"
           - name: SHIPPING_SERVICE_URL
